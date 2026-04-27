@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: #f4f1ea;
+  color: #111111;
+}
+
+.dark body {
+  background: #090b10;
+  color: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-lg border border-oat bg-cream shadow-soft dark:border-white/10 dark:bg-white/[0.04];
+  }
+
+  .input {
+    @apply w-full rounded border border-oat bg-white px-3 py-2 text-sm outline-none transition focus:border-brand focus:ring-4 focus:ring-orange-500/10 dark:border-white/10 dark:bg-white/5;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded px-3 py-2 text-sm font-medium transition duration-150 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100;
+  }
+
+  .btn-primary {
+    @apply btn bg-ink text-white hover:bg-white hover:text-ink;
+  }
+
+  .btn-ghost {
+    @apply btn border border-ink bg-transparent text-ink hover:bg-ink hover:text-white dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white dark:hover:text-ink;
+  }
+
+  .mono-label {
+    @apply text-[11px] font-medium uppercase tracking-[0.08em] text-muted dark:text-slate-400;
+  }
+
+  .display-title {
+    @apply font-normal leading-none tracking-normal;
+  }
+}
