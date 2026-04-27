@@ -19,7 +19,7 @@ npm install
 cp server/.env.example server/.env
 cp client/.env.example client/.env
 cp .env.example .env
-createdb starlink_manager_pro_v5
+createdb starlink_manager_pro
 npx prisma migrate dev
 # Set ADMIN_EMAIL and ADMIN_PASSWORD in .env first — seed will refuse to run otherwise.
 npm run prisma:seed
@@ -124,7 +124,7 @@ PORT=8112
 DATABASE_URL="postgresql://starlink_app:replace-this-password@localhost:5432/starlink_manager_pro_v5?schema=public"
 JWT_SECRET="generate-a-long-random-secret"
 JWT_EXPIRES_IN="8h"
-CLIENT_URL="https://starlink.taomonlae.com"
+CLIENT_URL="https://starlink.yoururl.com"
 # Required by the seed script. Min 12 characters. Seed refuses to run without these.
 ADMIN_EMAIL="you@example.com"
 ADMIN_PASSWORD="generate-a-strong-password"
@@ -151,7 +151,7 @@ sudo npm install -g pm2
 
 ```bash
 sudo -u postgres psql
-CREATE DATABASE starlink_manager_pro_v5;
+CREATE DATABASE starlink_manager_pro;
 CREATE USER starlink_app WITH ENCRYPTED PASSWORD 'replace-this-password';
 GRANT ALL PRIVILEGES ON DATABASE starlink_manager_pro_v5 TO starlink_app;
 \q
