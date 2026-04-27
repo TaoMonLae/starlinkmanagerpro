@@ -1,0 +1,1 @@
+ALTER TABLE "Settings" ALTER COLUMN "currency" SET DEFAULT 'MYR';
