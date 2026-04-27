@@ -3,10 +3,18 @@ import { prisma } from "../config/prisma.js";
 import { logActivity } from "../services/activityService.js";
 
 function serializePayment(payment) {
+  const receivable = payment.receivables?.[0];
   return {
     ...payment,
     amount: Number(payment.amount),
-    currency: payment.account?.currency || "MYR"
+    currency: payment.account?.currency || "MYR",
+    receivable: receivable
+      ? {
+          ...receivable,
+          amount: Number(receivable.amount),
+          amountReceived: Number(receivable.amountReceived)
+        }
+      : null
   };
 }
 
@@ -110,7 +118,7 @@ export async function getPaymentReceipt(req, res) {
 export async function listPayments(req, res) {
   const payments = await prisma.payment.findMany({
     where: { account: { userId: req.user.id } },
-    include: { account: true },
+    include: { account: true, receivables: { orderBy: { createdAt: "desc" }, take: 1 } },
     orderBy: { date: "desc" },
     take: Number(req.query.limit || 200)
   });
@@ -131,6 +139,30 @@ export async function createPayment(req, res) {
     metadata: { amount: Number(payment.amount), accountId: payment.accountId }
   });
   res.status(201).json({ payment: serializePayment(payment) });
+}
+
+export async function updatePayment(req, res) {
+  const existing = await prisma.payment.findFirst({
+    where: { id: req.params.id, account: { userId: req.user.id } },
+    include: { account: true }
+  });
+  if (!existing) return res.status(404).json({ message: "Payment not found" });
+
+  const account = await prisma.account.findFirst({ where: { id: req.body.accountId, userId: req.user.id } });
+  if (!account) return res.status(404).json({ message: "Account not found" });
+
+  const payment = await prisma.payment.update({
+    where: { id: existing.id },
+    data: { ...req.body, userId: req.user.id },
+    include: { account: true }
+  });
+  await logActivity({
+    userId: req.user.id,
+    type: "PAYMENT",
+    message: `Updated payment for ${payment.account.accountName}`,
+    metadata: { amount: Number(payment.amount), accountId: payment.accountId }
+  });
+  res.json({ payment: serializePayment(payment) });
 }
 
 export async function markPaid(req, res) {

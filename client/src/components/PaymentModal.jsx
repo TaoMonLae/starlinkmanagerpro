@@ -1,10 +1,26 @@
 import { X } from "lucide-react";
 import { useState } from "react";
 
-export default function PaymentModal({ accounts, initialAccountId, lockAccount = false, title = "Quick add payment", onClose, onSave }) {
+export default function PaymentModal({ accounts, initialAccountId, lockAccount = false, title = "Quick add payment", initial = null, onClose, onSave }) {
   const initialAccount = accounts.find((account) => account.id === initialAccountId) || accounts[0];
-  const [form, setForm] = useState({ accountId: initialAccount?.id || "", amount: initialAccount?.monthlyCost || "", method: "CARD", date: new Date().toISOString().slice(0, 10), reference: "", notes: "", createReceivable: false, debtorName: "", debtorContact: "" });
+  const [form, setForm] = useState({
+    id: initial?.id || null,
+    accountId: initial?.accountId || initialAccount?.id || "",
+    amount: initial?.amount ?? initialAccount?.monthlyCost ?? "",
+    method: initial?.method || "CARD",
+    date: initial?.date ? new Date(initial.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    reference: initial?.reference || "",
+    notes: initial?.notes || "",
+    createReceivable: Boolean(initial?.receivable),
+    debtorName: initial?.receivable?.debtorName || "",
+    debtorContact: initial?.receivable?.debtorContact || "",
+    amountReceived: initial?.receivable?.amountReceived ?? 0
+  });
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const receivableAmount = Number(form.amount || 0);
+  const amountReceived = Math.max(Number(form.amountReceived || 0), 0);
+  const outstanding = Math.max(receivableAmount - amountReceived, 0);
+  const debtSettled = receivableAmount > 0 && outstanding === 0;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4">
@@ -22,10 +38,15 @@ export default function PaymentModal({ accounts, initialAccountId, lockAccount =
             <>
               <label className="grid gap-1 text-sm font-medium">Debtor<input className="input" value={form.debtorName} onChange={(e) => set("debtorName", e.target.value)} required={form.createReceivable} /></label>
               <label className="grid gap-1 text-sm font-medium">Contact<input className="input" value={form.debtorContact} onChange={(e) => set("debtorContact", e.target.value)} /></label>
+              <label className="grid gap-1 text-sm font-medium">Received amount<input className="input" type="number" min="0" step="0.01" value={form.amountReceived} onChange={(e) => set("amountReceived", e.target.value)} /></label>
+              <div className="rounded-xl bg-slate-100/80 p-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                <p>Outstanding (auto): <strong>{outstanding.toFixed(2)}</strong></p>
+                {debtSettled && <p className="mt-1 text-xs text-mint">Debt is fully paid. You can still edit the received amount here.</p>}
+              </div>
             </>
           )}
         </div>
-        <div className="mt-4 flex justify-end gap-2"><button type="button" className="btn-ghost" onClick={onClose}>Cancel</button><button className="btn-primary">Save payment</button></div>
+        <div className="mt-4 flex justify-end gap-2"><button type="button" className="btn-ghost" onClick={onClose}>Cancel</button><button className="btn-primary">{form.id ? "Update payment" : "Save payment"}</button></div>
       </form>
     </div>
   );

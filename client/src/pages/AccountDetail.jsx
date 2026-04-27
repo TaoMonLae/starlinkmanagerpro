@@ -17,6 +17,7 @@ export default function AccountDetail() {
   const [owners, setOwners] = useState([]);
   const [editing, setEditing] = useState(false);
   const [paymentModal, setPaymentModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState(null);
   const { money } = useCurrency();
 
   const load = () => Promise.all([api.get(`/accounts/${id}`), api.get("/owners")]).then(([a, o]) => {
@@ -40,23 +41,29 @@ export default function AccountDetail() {
   }
 
   async function savePayment(form) {
-    const { createReceivable, debtorName, debtorContact, ...paymentForm } = form;
-    const { data } = await api.post("/payments", paymentForm);
+    const { id: paymentId, createReceivable, debtorName, debtorContact, amountReceived, ...paymentForm } = form;
+    const { data } = paymentId ? await api.put(`/payments/${paymentId}`, paymentForm) : await api.post("/payments", paymentForm);
+    const existingReceivable = paymentId ? payments.find((item) => item.id === paymentId)?.receivable : null;
     if (createReceivable) {
-      await api.post("/receivables", {
+      const receivablePayload = {
         accountId: paymentForm.accountId,
         paymentId: data.payment.id,
         debtorName,
         debtorContact,
         description: `Starlink payment paid on behalf of ${debtorName}`,
         amount: paymentForm.amount,
-        amountReceived: 0,
+        amountReceived: Number(amountReceived || 0),
         dueDate: null,
         status: "OPEN",
         notes: paymentForm.notes || null
-      });
+      };
+      if (existingReceivable?.id) await api.put(`/receivables/${existingReceivable.id}`, receivablePayload);
+      else await api.post("/receivables", receivablePayload);
+    } else if (existingReceivable?.id) {
+      await api.delete(`/receivables/${existingReceivable.id}`);
     }
     setPaymentModal(false);
+    setEditingPayment(null);
     await load();
     if (data?.payment?.id && confirm("Payment saved. Download the printable receipt now?")) {
       downloadReceipt(data.payment.id);
@@ -93,7 +100,17 @@ export default function AccountDetail() {
         }
       />
 
-      {paymentModal && <PaymentModal accounts={[account]} initialAccountId={account.id} lockAccount title="Add payment history" onClose={() => setPaymentModal(false)} onSave={savePayment} />}
+      {(paymentModal || editingPayment) && (
+        <PaymentModal
+          accounts={[account]}
+          initial={editingPayment}
+          initialAccountId={account.id}
+          lockAccount
+          title={editingPayment ? "Edit payment history" : "Add payment history"}
+          onClose={() => { setPaymentModal(false); setEditingPayment(null); }}
+          onSave={savePayment}
+        />
+      )}
       {editing && <div className="mb-4"><AccountForm owners={owners} initial={account} onSubmit={save} onCancel={() => setEditing(false)} /></div>}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -140,7 +157,10 @@ export default function AccountDetail() {
                     <td>{p.method.replace("_", " ")}</td>
                     <td>{p.reference || "-"}</td>
                     <td>{p.notes || "-"}</td>
-                    <td className="pr-4 text-right"><button className="btn-ghost px-2" title="Download receipt" onClick={() => downloadReceipt(p.id)}><FileText size={16} /></button></td>
+                    <td className="pr-4 text-right">
+                      <button className="btn-ghost px-2" title="Edit payment" onClick={() => setEditingPayment({ ...p, accountId: account.id })}><Pencil size={16} /></button>
+                      <button className="btn-ghost px-2" title="Download receipt" onClick={() => downloadReceipt(p.id)}><FileText size={16} /></button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
